@@ -15,4 +15,7 @@ def example_function():
     return result
 ```
 
-This convention applies to all Python files in the `talos/` package and throughout the project.
+This convention applies to **all Python files** throughout the entire project, including:
+- All modules in the `talos/` package
+- `setup.py` in the root directory
+- Any scripts, tests, or other Python files
