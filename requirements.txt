@@ -1,0 +1,3 @@
+# Core dependencies for xai-talos
+torch>=2.0.0
+numpy>=1.24.0
