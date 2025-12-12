@@ -2,4 +2,4 @@
 Tasks sub-package: Data handling and task definitions.
 """
 
-__all__ = []
+from .talos_task import TalosTask
