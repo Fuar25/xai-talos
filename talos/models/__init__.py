@@ -2,4 +2,9 @@
 Models sub-package: Neural network architectures and model definitions.
 """
 
-__all__ = []
+from .talos_model import TalosModel
+
+
+__all__ = [
+  'TalosModel',
+]

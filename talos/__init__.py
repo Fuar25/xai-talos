@@ -14,4 +14,7 @@ from . import models
 from . import trainers
 from . import utils
 
-__all__ = ["tasks", "models", "trainers", "utils"]
+
+wrap = models.TalosModel.wrap
+
+__all__ = ["tasks", "models", "trainers", "utils", "wrap"]
