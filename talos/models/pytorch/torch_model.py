@@ -16,8 +16,8 @@ except ImportError:
 
 class TorchModel(TalosModel):
 
-  def __init__(self, model, name: str = "TorchModel"):
-    super().__init__(name=name)
+  def __init__(self, model, name: str = "TorchModel", model_dir=None, **kwargs):
+    super().__init__(name=name, **kwargs)
     self.model: torch.nn.Module = model
 
   # region: APIs
@@ -41,6 +41,14 @@ class TorchModel(TalosModel):
 
     device = next(self.model.parameters()).device
     summary(self.model.to(device), tuple(input_size))
+
+  def _save(self, file_path: str) -> None:
+    torch.save(self.model.state_dict(), file_path)
+
+  def _load(self, file_path: str, **kwargs) -> None:
+    map_location = kwargs.get('map_location', 'cpu')
+    state = torch.load(file_path, map_location=map_location)
+    self.model.load_state_dict(state)
 
   # endregion: APIs
 
