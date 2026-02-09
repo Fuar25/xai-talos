@@ -3,7 +3,7 @@
 TorchModel Class
 """
 
-from talos.models import TalosModel
+from talos.model import TalosModel
 from typing import Any, Optional, Union
 
 try:

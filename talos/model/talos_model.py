@@ -11,6 +11,8 @@ import os
 class TalosModel(Nomear):
   """A base class for Talos models. """
 
+  SCOPE = 'talos.model'
+
   CHECK_POINT_EXT = ".pt"
 
   def __init__(self, name: str = "TalosModel", model_dir=None, **kwargs):
@@ -73,6 +75,9 @@ class TalosModel(Nomear):
                     If None, a default name will be used.
         work_dir (str): The working directory where the model will be saved.
     """
+    # If name is not provided, use the class name of the model as the default name
+    if name is None: name = type(model).__name__
+
     kwargs['name'] = name
     kwargs['model_dir'] = work_dir
 
@@ -80,7 +85,7 @@ class TalosModel(Nomear):
       import torch
       if isinstance(model, torch.nn.Module):
         cls.print("Detected PyTorch model. Wrapping with TorchModel ...")
-        from talos.models.pytorch.torch_model import TorchModel
+        from talos.model.pytorch.torch_model import TorchModel
         return TorchModel(model, **kwargs)
     except:
       pass

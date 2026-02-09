@@ -117,5 +117,8 @@ class Nomear(object):
     return _decorator
 
 
+  SCOPE = None
   @classmethod
-  def print(cls, text): print(f'[{cls.__name__}] >> {text}')
+  def print(cls, text):
+    prefix = f'{cls.__name__}' if cls.SCOPE is None else cls.SCOPE
+    print(f'[{prefix}] >> {text}')
