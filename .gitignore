@@ -1,4 +1,5 @@
 # Customized .gitignore
+.*
 .claude
 .idea
 .vscode
