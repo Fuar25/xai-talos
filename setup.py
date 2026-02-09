@@ -1,14 +1,29 @@
 from setuptools import setup, find_packages
+from pathlib import Path
 
-with open("README.md", "r", encoding="utf-8") as fh:
+import re
+
+
+ROOT = Path(__file__).resolve().parent
+
+def _read_version():
+  # Avoid importing the package here; dependencies may not be installed during setup.
+  init_path = ROOT / "talos" / "__init__.py"
+  with init_path.open("r", encoding="utf-8") as fh:
+    match = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', fh.read(), re.M)
+    if not match:
+      raise RuntimeError("Unable to find __version__ in talos/__init__.py")
+    return match.group(1)
+
+with (ROOT / "README.md").open("r", encoding="utf-8") as fh:
   long_description = fh.read()
 
-with open("requirements.txt", "r", encoding="utf-8") as fh:
+with (ROOT / "requirements.txt").open("r", encoding="utf-8") as fh:
   requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
   name="xai-talos",
-  version="0.1.0",
+  version=_read_version(),
   author="WilliamRo",
   description="A decoupled, modular deep learning framework designed for research",
   long_description=long_description,
