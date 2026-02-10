@@ -9,7 +9,23 @@ import os
 
 
 class TalosModel(Nomear):
-  """A base class for Talos models. """
+  """A base class for Talos models, supporting different backends such as PyTorch.
+
+  Current Addons:
+  (1) Path management for saving and loading models, with a default directory
+      structure under the Talos work directory:
+
+      |-- work_dir/
+        |-- models/
+          |-- {model_name}/
+            |-- ckpt_path_1.pt
+            |-- ckpt_path_2.pt
+        |-- data/
+        |-- model_1.py
+        |-- model_2.py
+
+  (2) Coming soon ...
+  """
 
   SCOPE = 'talos.model'
 
@@ -85,13 +101,13 @@ class TalosModel(Nomear):
       import torch
       if isinstance(model, torch.nn.Module):
         cls.print("Detected PyTorch model. Wrapping with TorchModel ...")
-        from talos.model.pytorch.torch_model import TorchModel
+        from talos.model.backends.pytorch.torch_model import TorchModel
         return TorchModel(model, **kwargs)
     except:
       pass
 
     try:
-      import tensorflow as tf
+      from talos.model.backends import tensorflow as tf
       if isinstance(model, tf.keras.Model):
         cls.print("Detected TensorFlow Keras model. Wrapping with KerasModel.")
         # TODO

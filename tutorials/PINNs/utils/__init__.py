@@ -28,3 +28,24 @@ def add_necessary_paths():
   project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
   if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+
+def fix_random_seed(seed: int = 0) -> None:
+  import os
+  import random
+  import numpy as np
+  try:
+    import torch
+  except Exception:
+    torch = None
+
+  os.environ['PYTHONHASHSEED'] = str(seed)
+  random.seed(seed)
+  np.random.seed(seed)
+
+  if torch is not None:
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+      torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False

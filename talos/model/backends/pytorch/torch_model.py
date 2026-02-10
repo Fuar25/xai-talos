@@ -18,11 +18,14 @@ _BASE_MODULE = torch.nn.Module if _HAS_TORCH else object
 
 class TorchModel(_BASE_MODULE, TalosModel):
 
-  def __init__(self, model, name: str = "TorchModel", model_dir=None, **kwargs):
-    if _HAS_TORCH:
-      torch.nn.Module.__init__(self)
+  def __init__(self, model=None, name: str = "TorchModel",
+               model_dir=None, **kwargs):
+    # Initialize the base classes
+    if _HAS_TORCH: torch.nn.Module.__init__(self)
     TalosModel.__init__(self, name=name, model_dir=model_dir, **kwargs)
-    self.model: torch.nn.Module = model
+
+    # Store the wrapped model if provided, otherwise use self as the model
+    self._model: torch.nn.Module = model
 
   # region: APIs
 
@@ -43,8 +46,10 @@ class TorchModel(_BASE_MODULE, TalosModel):
       raise ImportError("torchsummary is not installed." 
                         " Please install it to use the summary feature.")
 
-    device = next(self.model.parameters()).device
-    summary(self.model.to(device), tuple(input_size))
+    # Use self if self.model is None, otherwise use self.model for summary
+    model = self._model if self._model is not None else self
+    device = next(model.parameters()).device
+    summary(model.to(device), tuple(input_size))
 
   def _save(self, file_path: str) -> None:
     torch.save(self.state_dict(), file_path)
@@ -60,6 +65,7 @@ class TorchModel(_BASE_MODULE, TalosModel):
 
   def forward(self, *args: Any, **kwargs: Any) -> Any:
     """Delegate the forward pass to the wrapped torch.nn.Module."""
-    return self.model(*args, **kwargs)
+    model = self._model if self._model is not None else self
+    return model(*args, **kwargs)
 
   # endregion: Delegation

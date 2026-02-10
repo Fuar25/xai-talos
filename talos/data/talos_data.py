@@ -18,7 +18,6 @@ Each instance of TalosData mainly contains:
 
 from talos.utils import Nomear
 
-import random
 import numpy as np
 
 
@@ -118,15 +117,14 @@ class TalosData(Nomear):
 
     # 2. Build indices
     indices = list(range(total_size))
-    if shuffle: random.shuffle(indices)
+    if shuffle: np.random.shuffle(indices)
 
     # 2.1 Helper for subsetting
     def _subset(data, idx):
       if data is None: return None
-      if isinstance(data, np.ndarray): return data[idx]
       if isinstance(data, list): return [data[i] for i in idx]
       if isinstance(data, tuple): return tuple(data[i] for i in idx)
-      try: return data[idx]
+      try: return data[idx]  # works for np.ndarray
       except Exception: return [data[i] for i in idx]
 
     # 3. Slice and build datasets
