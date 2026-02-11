@@ -79,19 +79,23 @@ class TalosData(Nomear):
 
   # region: APIs
 
-  def sample(self, batch_size: int) -> "TalosData":
+  def sample(self, batch_size: int | None) -> "TalosData":
     """Sample a subset of data points.
 
     Args:
-      batch_size: Number of data points to sample.
+      batch_size: Number of data points to sample. If None or -1, return self.
 
     Returns:
-      A new TalosData containing the sampled subset.
+      A new TalosData containing the sampled subset, or `self` when batch_size is None/-1.
     """
     if self.X is None:
       raise ValueError('!! X must not be None for sample')
 
-    # (1) Validate batch_size
+    # (1) Return all data without copying.
+    if batch_size is None or batch_size == -1:
+      return self
+
+    # (2) Validate batch_size
     batch_size = check_type(batch_size, INT_TYPES, positive=True)
 
     total_size = len(self.X)
