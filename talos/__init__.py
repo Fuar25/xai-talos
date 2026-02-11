@@ -63,3 +63,12 @@ def __getattr__(name: str) -> Any:
 def __dir__() -> list[str]:
   """Return custom dir\(\) output including lazy attributes."""
   return sorted(list(globals().keys()) + ["TorchModule"])
+
+
+"""
+Wish List
+  Data
+  [Done] stratify in data splitting
+  Model
+  [] Customized model summary similar to tframe (able to show shortcuts)
+"""
