@@ -55,7 +55,7 @@ class TalosData(Nomear):
   # region: Wrapping
 
   @classmethod
-  def wrap(cls, X, Y=None, metadata=None, name=None, **kwargs) -> "TalosData":
+  def wrap(cls, X, Y=None, name=None, metadata=None, **kwargs) -> "TalosData":
     """Wrap data arrays into a TalosData instance.
 
     Args:
