@@ -194,9 +194,7 @@ class MLP(ta.TorchModule):
 if __name__ == "__main__":
   mlp = ta.model.torch_zoo.MLP(
     784, [128, 64, 64], 10,
-    activation='gelu',
-    residual=True,
-  )
+    activation='gelu', residual=True)
 
   mlp.summary(784)
   print(mlp)

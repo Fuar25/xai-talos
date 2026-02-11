@@ -119,10 +119,12 @@ class TalosModel(Nomear):
 
   # endregion: Wrapping
 
-  # region: Built-in Methods
+  # region: Abstract Methods
 
+  def forward(self, *args, **kwargs):
+    raise NotImplementedError
 
-  # endregion: Built-in Methods
+  # endregion: Abstract Methods
 
   # region: APIs
 
