@@ -7,6 +7,7 @@ from typing import Any, Union
 
 from talos.model import TalosModel
 from talos.utils.backends.pytorch import has_torch, torch
+from talos.utils import check_type
 
 _BASE_MODULE = torch.nn.Module if has_torch else object
 
@@ -52,22 +53,8 @@ class TorchModel(_BASE_MODULE, TalosModel):
         "torchsummary is not installed. Please install it to use the summary feature."
       ) from exc
 
-    # (2) Normalize `input_size` to a tuple of ints.
-    if isinstance(input_size, int):
-      if input_size <= 0:
-        raise ValueError("input_size must be a positive integer.")
-      input_size = (input_size,)
-    elif isinstance(input_size, list):
-      input_size = tuple(input_size)
-    elif not isinstance(input_size, tuple):
-      raise TypeError("input_size must be an int, tuple, or list of ints.")
-    # (2.1) Ensure all dimensions are integers and positive.
-    try:
-      input_size = tuple(int(d) for d in input_size)
-    except (TypeError, ValueError):
-      raise TypeError("All elements of input_size must be integers.")
-    if any(d <= 0 for d in input_size):
-      raise ValueError("All dimensions in input_size must be positive.")
+    # (2) Normalize `input_size` to a tuple of positive ints.
+    input_size = check_type(input_size, tuple, inner_type=int, positive=True)
 
     # (3) Summarize the wrapped module when present; otherwise summarize self.
     model = self._model if self._model is not None else self
