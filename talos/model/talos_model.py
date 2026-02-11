@@ -4,6 +4,7 @@ Talos Model Module
 """
 
 from talos.utils import Nomear
+from talos.utils.config import Config
 
 import os
 
@@ -44,6 +45,12 @@ class TalosModel(Nomear):
     self._model_dir = model_dir
 
   # region: Properties
+
+  @Nomear.property()
+  def config(self):
+    cfg = Config(name='model')
+    self._register_configs(cfg)
+    return cfg
 
   @property
   def model_dir(self) -> str:
@@ -123,6 +130,10 @@ class TalosModel(Nomear):
 
   def forward(self, *args, **kwargs):
     raise NotImplementedError
+
+  def _register_configs(self, config: Config):
+    """Register base model knobs. Subclasses override and call super()."""
+    pass
 
   # endregion: Abstract Methods
 

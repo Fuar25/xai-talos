@@ -52,3 +52,38 @@ def train(self, train_set, max_iterations, batch_size=-1, loss_fn=None):
 | `_backward_and_update` | abstract | `zero_grad()` → `backward()` → `step()` |
 | `_resolve_metric` | abstract | Delegates to `get_torch_metric(spec)` |
 | `_prepare_batch` | pass-through | numpy → `torch.tensor` on model device |
+
+## Next: Improving the Training Experience
+
+### 1. Logging & History Tracking
+- Track loss curve per iteration
+- Track validation metrics over time
+- Store in trainer state (e.g., `trainer.history`)
+- Needs discussion: what data structure? dict of lists? Nomear pocket?
+
+### 2. Validation Logic
+- After every N iterations, evaluate model on validation set
+- Compute loss and/or other metrics on val set (no gradient)
+- Needs discussion: `validate_every=N` parameter? default N?
+
+### 3. Early Stopping
+- Stop training when validation performance stops improving
+- Requires: patience (how many checks to wait), direction (min/max from metric)
+- Needs discussion: API for configuring early stopping
+
+### 4. Model Checkpointing
+- Save best model weights when validation improves
+- Restore best weights when early stopping triggers
+- Closely tied to validation + early stopping
+- Needs discussion: in-memory only, or save to disk?
+
+### 5. Progress Bar & Console Output
+- Show training progress with ETA (use `talos.utils.console`)
+- Display current loss, validation metrics, iteration count
+- Needs discussion: verbosity levels? update frequency?
+
+### 6. Validation Set Sourcing
+- Option A: User provides `val_set` explicitly to `train()`
+- Option B: Trainer auto-splits from `train_set` (e.g., `val_ratio=0.1`)
+- Option C: Support both — use `val_set` if given, else auto-split if `val_ratio` set
+- Needs discussion: which option?

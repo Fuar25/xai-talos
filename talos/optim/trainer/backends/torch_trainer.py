@@ -78,6 +78,13 @@ class TorchTrainer(TalosTrainer):
     """Resolve metric spec using torch metric registry."""
     return get_torch_metric(spec)
 
+  def _validate(self, val_set, val_metrics, iteration):
+    """Run validation with model.eval() and torch.no_grad()."""
+    self.model.eval()
+    with torch.no_grad():
+      super()._validate(val_set, val_metrics, iteration)
+    self.model.train()
+
   # endregion: Backend-Specific Methods
 
 
