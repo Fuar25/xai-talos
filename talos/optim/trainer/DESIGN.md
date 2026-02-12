@@ -52,6 +52,7 @@ def train(self, train_set, max_iterations=None, batch_size=None,
 | `validate_every` | int | 100 | Validate every N iterations (positive) |
 | `val_ratio` | float | None | Auto-split ratio for validation set (positive) |
 | `val_metrics` | str | None | Comma/semicolon-separated metric names for validation |
+| `print_every` | int | 100 | Print training progress every N iterations (positive) |
 
 ### 4.2. TrainingHistory
 
@@ -97,7 +98,5 @@ Track-based recording where each metric is an independent time series keyed by `
 - Needs discussion: in-memory only, or save to disk?
 
 ### 6.2. Progress Bar & Console Output
-- Show training progress with ETA (use `talos.utils.console`)
-- Display current loss, validation metrics, iteration count
-- `TrainState` will hold iteration/timing info for this
-- Needs discussion: verbosity levels? update frequency?
+- **Done**: Basic console printing via `print_every` config knob. Prints iteration + train loss (`>> Iter N | train/metric = value`), validation metrics (`.. val/metric = value`), and `[Best]` notifications when early stopping metric improves. Start/end banners with early stopping message.
+- TODO: Progress bar with ETA (use `Console.print_progress`), verbosity levels

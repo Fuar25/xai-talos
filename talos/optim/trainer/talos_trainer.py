@@ -9,7 +9,10 @@ from talos.data.talos_data import TalosData
 from talos.model.talos_model import TalosModel
 from talos.utils import Nomear
 from talos.utils.config import Config
+from talos.utils.console import Console
 from talos.optim.trainer.history import TrainingHistory
+
+_console = Console()
 
 
 class TrainState:
@@ -17,7 +20,7 @@ class TrainState:
 
   def __init__(self):
     # (1) Early stopping state.
-    self.es_key = None
+    self.early_stop_metric = None
     self.patience_counter = 0
 
 
@@ -51,6 +54,9 @@ class TalosTrainer(Nomear):
     if loss_fn is not None:
       loss_instance = self._resolve_metric(loss_fn)
       self.loss_functions[loss_instance.name] = loss_instance
+
+    # (4) Initialize per-session state (created fresh for each train() call).
+    self._state = TrainState()
 
   # region: Properties
 
@@ -102,6 +108,11 @@ class TalosTrainer(Nomear):
     train_set, val_set = self._resolve_val_set(train_set, val_set)
     val_metrics = self._resolve_val_metrics(val_metrics, loss_fn)
 
+    # (0.5) Resolve print frequency.
+    print_every = self.config.print_every
+    _console.show_status(f'Training started (max_iterations={max_iterations})')
+
+    stopped_early = False
     for i in range(max_iterations):
       # (1) Sample data batch and convert to backend format.
       batch = train_set.sample(batch_size)
@@ -119,13 +130,27 @@ class TalosTrainer(Nomear):
       # (5) Record training loss.
       self.history.record(loss_fn, iteration=i, value=loss, group='train')
 
+      # (5.1) Print progress.
+      if (i + 1) % print_every == 0:
+        self._print_progress(i, loss_fn)
+
       # (6) Validation.
       if val_set is not None and (i + 1) % validate_every == 0:
         self._validate(val_set, val_metrics, i)
+        # (6.1) Print validation results.
+        self._print_validation(val_metrics, i)
 
       # (7) Check stopping criteria.
       if self._should_stop():
+        stopped_early = True
         break
+
+    # (8) Print training summary.
+    if stopped_early:
+      _console.show_status(
+        f'Early stopping at iter {i + 1} (patience={self.config.patience})')
+    else:
+      _console.show_status(f'Training complete (iter {i + 1})')
 
   # endregion: APIs
 
@@ -156,7 +181,7 @@ class TalosTrainer(Nomear):
       val = metric(outputs, Y)
       self.history.record(metric, iteration=iteration, value=val, group='val')
     # (2) Update early stopping state.
-    if self.history.improved(self._state.es_key):
+    if self.history.improved(self._state.early_stop_metric):
       self._state.patience_counter = 0
     else:
       self._state.patience_counter += 1
@@ -179,10 +204,34 @@ class TalosTrainer(Nomear):
     config.register_str('val_metrics', default=None,
                         description='Comma/semicolon-separated metric names for '
                         'validation (e.g., "mse,accuracy").')
+    config.register_int('print_every', default=100,
+                        description='Print training progress every N iterations.',
+                        positive=True)
 
   # endregion: Backend-Specific Methods
 
   # region: Utilities
+
+  def _print_progress(self, iteration, loss_fn):
+    """Print iteration + training loss."""
+    loss_key = f'train/{loss_fn.name}'
+    loss_val = self.history.latest(loss_key)
+    _console.show_status(f'Iter {iteration + 1} | {loss_key} = {loss_val:.6g}')
+
+  def _print_validation(self, val_metrics, iteration):
+    """Print validation metrics and notify on new best."""
+    for metric in val_metrics:
+      key = f'val/{metric.name}'
+      val = self.history.latest(key)
+      _console.supplement(f'{key} = {val:.6g}')
+    # (1) Check if early stopping metric improved (or is first entry).
+    es_key = self._state.early_stop_metric
+    if es_key:
+      track = self.history._tracks.get(es_key, [])
+      if len(track) == 1 or self.history.improved(es_key):
+        best_iter, best_val = self.history.best(es_key)
+        _console.supplement(
+          f'[Best] {es_key} = {best_val:.6g} (iter {best_iter + 1})')
 
   def _should_stop(self):
     """Check stopping criteria. Returns True if training should halt."""
@@ -212,7 +261,7 @@ class TalosTrainer(Nomear):
     """Resolve validation metrics.
 
     Priority: (1) train() arg → (2) config.val_metrics string → (3) [loss_fn].
-    Also sets `_state.es_key` for early stopping (first metric).
+    Also sets `_state.early_stop_metric` for early stopping (first metric).
     """
     # (1) Explicit list from train() signature.
     if val_metrics is not None:
@@ -227,7 +276,7 @@ class TalosTrainer(Nomear):
     else:
       resolved = [loss_fn]
     # (4) Set early stopping key (first val metric).
-    self._state.es_key = f'val/{resolved[0].name}'
+    self._state.early_stop_metric = f'val/{resolved[0].name}'
     return resolved
 
   def _resolve_param(self, name, arg_value, required=False):

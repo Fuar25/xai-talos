@@ -136,7 +136,11 @@ data:
   split_ratio: 0.8
 ```
 
-### 8.2. Hyper-Parameter Search Space
+### 8.2. IDE Autocompletion for Config Knobs
+
+Currently, knobs registered via `register_int(...)` etc. are runtime-only — IDEs cannot autocomplete `config.patience` because the attributes aren't visible to static analysis. Solution: declarative Config subclasses with descriptor fields (`IntField`, `FloatField`, etc.) that auto-register knobs and provide type annotations for IDE inference. Registration logic stays unchanged internally.
+
+### 8.3. Hyper-Parameter Search Space
 
 Allow knobs to specify a search space instead of a fixed value. Passing such a config to `talos/optim/alchemy` triggers hyper-parameter search.
 

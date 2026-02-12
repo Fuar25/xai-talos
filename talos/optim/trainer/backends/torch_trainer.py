@@ -104,4 +104,6 @@ if __name__ == "__main__":
 
   # Optimization
   trainer = TorchTrainer(model, loss_fn='mse')
-  trainer.train(train_set, max_iterations=100)
+  trainer.config.print_every = 10
+  trainer.config.validate_every = 50
+  trainer.train(train_set, max_iterations=200)
