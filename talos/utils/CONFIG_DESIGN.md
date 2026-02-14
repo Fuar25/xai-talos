@@ -33,30 +33,30 @@ class Knob:
 ## 3. Usage
 
 ```python
-# (1) Set knobs via attribute assignment (type-checked)
-cfg = Config('trainer')
-cfg.register_int('batch_size', default=-1)
-cfg.register_bool('early_stop', default=False)
-cfg.batch_size = 32
-cfg.early_stop = True
+# (1) Declarative subclass (preferred — provides IDE autocompletion)
+class MyConfig(Config):
+  batch_size: int = Config.Integer(default=-1)
+  early_stop: bool = Config.Boolean(default=False)
 
-# (2) Inspect
-cfg.to_dict()    # → OrderedDict([('batch_size', 32), ('early_stop', True)])
+cfg = MyConfig('trainer')
+cfg.batch_size = 32               # type-checked on assignment
 
-# (3) YAML serialization
+# (2) Programmatic registration (dynamic knobs at runtime)
+cfg.register_float('clip_norm', default=None, positive=True)
+cfg.register_categorical('scheduler', options=('step', 'cosine', 'linear'))
+
+# (3) Inspect
+cfg.to_dict()    # → OrderedDict([('batch_size', 32), ('early_stop', False), ...])
+
+# (4) YAML serialization
 yaml_str = cfg.to_yaml()              # no path → return string
 cfg.to_yaml('experiment.yaml')        # path → write to file
 
-# (4) YAML loading (hierarchical group support)
+# (5) YAML loading (hierarchical group support)
 cfg.from_yaml('experiment.yaml')                          # load all
 cfg.from_yaml('experiment.yaml', group='trainer')         # navigate to group
 cfg.from_yaml('exp.yaml', group='outer.inner')            # nested group
 cfg.from_yaml('exp.yaml', auto_register=True)             # auto-register unknown knobs
-
-# (5) Register custom knobs
-cfg.register_float('clip_norm', default=None, positive=True)
-cfg.register_categorical('scheduler', options=('step', 'cosine', 'linear'))
-cfg.register(some_knob_instance)      # accept Knob instance directly
 ```
 
 ## 4. YAML Format
@@ -79,37 +79,43 @@ trainer.config.batch_size = 64
 trainer.train(train_set, max_iterations=100, batch_size=32)  # 32 wins
 ```
 
-## 6. Integration Pattern
+## 6. Declarative Config (Inner Class Pattern)
 
-Modules should own a `.config` property via `@Nomear.property()`, with knobs registered in a `_register_configs()` method. Subclasses extend by overriding `_register_configs()` and calling `super()` first.
+Modules define an inner `Config` subclass with typed field annotations. Knob types are accessed as `Config.Integer`, `Config.Float`, etc. The `config` property auto-discovers the most specific Config class via MRO.
 
 ```python
+from talos.utils.config import Config as ConfigBase
+
 class TalosTrainer(Nomear):
+
+  class Config(ConfigBase):
+    batch_size: int = ConfigBase.Integer(default=-1)
+    early_stop: bool = ConfigBase.Boolean(default=False)
 
   @Nomear.property()
   def config(self):
-    cfg = Config(name='trainer')
-    self._register_configs(cfg)
-    return cfg
-
-  def _register_configs(self, config):
-    config.register_int('batch_size', default=-1)
-    config.register_bool('early_stop', default=False)
+    return type(self).Config(name='trainer')
 
 
+# Extension: subclass adds knobs by inheriting parent's Config.
 class TorchTrainer(TalosTrainer):
 
-  def _register_configs(self, config):
-    super()._register_configs(config)
-    config.register_categorical('device', default='auto',
-                                options=('auto', 'cpu', 'cuda'))
+  class Config(TalosTrainer.Config):
+    device: str = TalosTrainer.Config.Categorical(
+      options=('auto', 'cpu', 'cuda'), default='auto')
+  # No need to redefine config property — inherited auto-discovery works.
 ```
+
+Mechanism: `Config.__init_subclass__` collects `Knob` instances from the class body, sets `.name` from the attribute name, and `delattr`s them. `Config.__init__` walks the MRO in reverse to auto-register all declared fields. Annotations survive `delattr` (stored in `__annotations__`), so IDEs see the types.
+
+Programmatic registration (`register_int(...)`, etc.) still works for dynamic knobs.
 
 ## 7. Decided
 
 - Composition over inheritance: modules own `.config`, not extend Config.
 - `Config.name` is used as the top-level YAML group key.
 - `from_yaml(auto_register=True)` infers knob type from Python value type via `_infer_knob()`.
+- Declarative inner `Config` subclass with `__init_subclass__` auto-registration replaces `_register_configs()`. Type annotations provide IDE autocompletion.
 
 ## 8. TODO
 
@@ -136,11 +142,7 @@ data:
   split_ratio: 0.8
 ```
 
-### 8.2. IDE Autocompletion for Config Knobs
-
-Currently, knobs registered via `register_int(...)` etc. are runtime-only — IDEs cannot autocomplete `config.patience` because the attributes aren't visible to static analysis. Solution: declarative Config subclasses with descriptor fields (`IntField`, `FloatField`, etc.) that auto-register knobs and provide type annotations for IDE inference. Registration logic stays unchanged internally.
-
-### 8.3. Hyper-Parameter Search Space
+### 8.2. Hyper-Parameter Search Space
 
 Allow knobs to specify a search space instead of a fixed value. Passing such a config to `talos/optim/alchemy` triggers hyper-parameter search.
 

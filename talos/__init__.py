@@ -47,22 +47,26 @@ work_dir = utils.file_manager.get_main_file_dir()
 if TYPE_CHECKING:
   # This does not run at runtime, so it does not defeat lazy loading.
   from .model.backends.pytorch.torch_model import TorchModel as TorchModule
+  from .optim.trainer.backends.torch_trainer import TorchTrainer
+
+_LAZY_IMPORTS = {
+  "TorchModule": (".model.backends.pytorch.torch_model", "TorchModel"),
+  "TorchTrainer": (".optim.trainer.backends.torch_trainer", "TorchTrainer"),
+}
 
 def __getattr__(name: str) -> Any:
   """Lazily resolve selected module attributes on first access."""
-  if name == "TorchModule":
-    torch_model_module = importlib.import_module(
-      ".model.backends.pytorch.torch_model",
-      __name__,
-    )
-    torch_module = torch_model_module.TorchModel
-    globals()["TorchModule"] = torch_module
-    return torch_module
+  if name in _LAZY_IMPORTS:
+    module_path, attr_name = _LAZY_IMPORTS[name]
+    mod = importlib.import_module(module_path, __name__)
+    value = getattr(mod, attr_name)
+    globals()[name] = value
+    return value
   raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 def __dir__() -> list[str]:
   """Return custom dir\(\) output including lazy attributes."""
-  return sorted(list(globals().keys()) + ["TorchModule"])
+  return sorted(list(globals().keys()) + list(_LAZY_IMPORTS.keys()))
 
 
 """

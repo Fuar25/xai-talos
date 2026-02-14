@@ -8,7 +8,7 @@ from typing import Any
 from talos.data.talos_data import TalosData
 from talos.model.talos_model import TalosModel
 from talos.utils import Nomear
-from talos.utils.config import Config
+from talos.utils.config import Config as ConfigBase
 from talos.utils.console import Console
 from talos.optim.trainer.history import TrainingHistory
 
@@ -28,6 +28,27 @@ class TalosTrainer(Nomear):
   """A base class for gradient-based trainers."""
 
   SCOPE = "talos.trainer"
+
+  class Config(ConfigBase):
+    batch_size: int = ConfigBase.Integer(
+      default=-1, description='Batch size. -1 for full batch.')
+    max_iterations: int | None = ConfigBase.Integer(
+      default=None, description='Number of training iterations.', positive=True)
+    early_stop: bool = ConfigBase.Boolean(
+      default=False, description='Enable early stopping.')
+    patience: int = ConfigBase.Integer(
+      default=10, description='Early stopping patience.', positive=True)
+    validate_every: int = ConfigBase.Integer(
+      default=100, description='Validate every N iterations.', positive=True)
+    val_ratio: float | None = ConfigBase.Float(
+      default=None, description='Auto-split ratio for validation set.',
+      positive=True)
+    val_metrics: str | None = ConfigBase.String(
+      default=None,
+      description='Comma/semicolon-separated metric names for validation.')
+    print_every: int = ConfigBase.Integer(
+      default=100, description='Print training progress every N iterations.',
+      positive=True)
 
   def __init__(self, model: TalosModel, optimizer: Any = 'sgd',
                loss_fn=None, **optimizer_configs):
@@ -65,9 +86,7 @@ class TalosTrainer(Nomear):
 
   @Nomear.property()
   def config(self):
-    cfg = Config(name='trainer')
-    self._register_configs(cfg)
-    return cfg
+    return type(self).Config(name='trainer')
 
   @Nomear.property()
   def history(self): return TrainingHistory()
@@ -185,28 +204,6 @@ class TalosTrainer(Nomear):
       self._state.patience_counter = 0
     else:
       self._state.patience_counter += 1
-
-  def _register_configs(self, config: Config):
-    """Register base trainer knobs. Subclasses override and call super()."""
-    config.register_int('batch_size', default=-1,
-                        description='Batch size. -1 for full batch.')
-    config.register_int('max_iterations', default=None,
-                        description='Number of training iterations.', positive=True)
-    config.register_bool('early_stop', default=False,
-                         description='Enable early stopping.')
-    config.register_int('patience', default=10,
-                        description='Early stopping patience.', positive=True)
-    config.register_int('validate_every', default=100,
-                        description='Validate every N iterations.', positive=True)
-    config.register_float('val_ratio', default=None,
-                          description='Auto-split ratio for validation set.',
-                          positive=True)
-    config.register_str('val_metrics', default=None,
-                        description='Comma/semicolon-separated metric names for '
-                        'validation (e.g., "mse,accuracy").')
-    config.register_int('print_every', default=100,
-                        description='Print training progress every N iterations.',
-                        positive=True)
 
   # endregion: Backend-Specific Methods
 

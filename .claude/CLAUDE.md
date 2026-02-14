@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Model (neural network architecture, algorithm workflow, and model deployment)
 - Optimization (gradient-based optimization and hyperparameter tuning)
 
-Built for reproducibility and clean abstractions. Currently v0.1.0 (alpha), PyTorch-focused.
+Built for reproducibility and clean abstractions. Currently v0.1.0 (alpha), PyTorch-focused. Requires Python >=3.11.
 
 ## 2. Design File Convention
 

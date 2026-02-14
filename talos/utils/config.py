@@ -11,7 +11,7 @@ from typing import Any
 class Knob:
   """Base class for a single typed configuration entry."""
 
-  def __init__(self, name: str, default: Any = None, description: str = ''):
+  def __init__(self, name: str = None, default: Any = None, description: str = ''):
     self.name = name
     self.default = default
     self.description = description
@@ -27,7 +27,7 @@ class Knob:
 class IntKnob(Knob):
   """Integer knob with optional constraints."""
 
-  def __init__(self, name, default=None, description='',
+  def __init__(self, name=None, default=None, description='',
                positive=False, non_negative=False):
     super().__init__(name, default, description)
     self.positive = positive
@@ -43,7 +43,7 @@ class IntKnob(Knob):
 class FloatKnob(Knob):
   """Float knob with optional constraints."""
 
-  def __init__(self, name, default=None, description='',
+  def __init__(self, name=None, default=None, description='',
                positive=False, non_negative=False):
     super().__init__(name, default, description)
     self.positive = positive
@@ -69,7 +69,7 @@ class StrKnob(Knob):
 class CategoricalKnob(Knob):
   """Categorical knob — value must be one of the allowed string options."""
 
-  def __init__(self, name, options: tuple, default=None, description=''):
+  def __init__(self, name=None, options: tuple = (), default=None, description=''):
     super().__init__(name, default, description)
     self.options = tuple(options)
 
@@ -118,13 +118,35 @@ def _infer_knob(name: str, value) -> Knob:
 class Config:
   """Typed configuration container. A collection of knobs."""
 
+  # Knob-type aliases for declarative field definitions.
+  Integer = IntKnob
+  Float = FloatKnob
+  String = StrKnob
+  Boolean = BoolKnob
+  Categorical = CategoricalKnob
+
   # Internal attributes that bypass __setattr__ validation.
   _INTERNAL = ('_name', '_knobs', '_values')
+
+  def __init_subclass__(cls, **kwargs):
+    super().__init_subclass__(**kwargs)
+    # Collect Knob instances declared on this class (not parents).
+    cls._fields = {}
+    for name in list(vars(cls)):
+      value = vars(cls)[name]
+      if isinstance(value, Knob):
+        cls._fields[name] = value
+        value.name = name
+        delattr(cls, name)
 
   def __init__(self, name: str = 'config'):
     object.__setattr__(self, '_name', name)
     object.__setattr__(self, '_knobs', OrderedDict())
     object.__setattr__(self, '_values', {})
+    # Auto-register declared fields from MRO (base classes first).
+    for klass in reversed(type(self).__mro__):
+      for field_name, field in getattr(klass, '_fields', {}).items():
+        self.register(field)
 
   # region: Attribute Access
 
@@ -156,6 +178,8 @@ class Config:
     """Register a Knob instance."""
     if not isinstance(knob, Knob):
       raise TypeError(f"Expected Knob instance, got {type(knob).__name__}")
+    if knob.name is None:
+      raise ValueError("Knob must have a name.")
     knobs = object.__getattribute__(self, '_knobs')
     knobs[knob.name] = knob
 

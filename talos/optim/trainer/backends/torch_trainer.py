@@ -14,6 +14,7 @@ from talos.utils.backends.pytorch import has_torch, torch
 
 class TorchTrainer(TalosTrainer):
   """A gradient-based trainer for PyTorch models."""
+  model: TorchModel
 
   def __init__(self, model: TorchModel, optimizer: Any = "sgd",
                loss_fn=None, **kwargs):
@@ -104,6 +105,8 @@ if __name__ == "__main__":
 
   # Optimization
   trainer = TorchTrainer(model, loss_fn='mse')
-  trainer.config.print_every = 10
-  trainer.config.validate_every = 50
-  trainer.train(train_set, max_iterations=200)
+  trainer.config.print_every = 20
+  trainer.config.validate_every = 100
+  # trainer.config.val_ratio = 0.1
+  # trainer.config.patience = 3
+  trainer.train(train_set, max_iterations=500)

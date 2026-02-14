@@ -19,7 +19,7 @@ TalosModel (base)              <- save/load, config, model_dir management
 - `load(file_path=None, **kwargs)` — Load model state. If no path given, finds most recent checkpoint in `model_dir`.
 - `summary(input_size)` — Print model architecture summary.
 - `forward(*args, **kwargs)` — Forward pass (abstract, implemented by backends).
-- `config` — Lazy `Config` property via `@Nomear.property()`. Subclasses register knobs in `_register_configs()`.
+- `config` — Lazy `Config` property via `@Nomear.property()`. Subclasses extend by defining an inner `Config` class (see `CONFIG_DESIGN.md` s6).
 - `model_dir` — Default: `{talos.work_dir}/models/{name}/`. Auto-creates directory.
 
 ## 3. TorchModel

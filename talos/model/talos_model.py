@@ -4,7 +4,7 @@ Talos Model Module
 """
 
 from talos.utils import Nomear
-from talos.utils.config import Config
+from talos.utils.config import Config as ConfigBase
 
 import os
 
@@ -30,6 +30,9 @@ class TalosModel(Nomear):
 
   SCOPE = 'talos.model'
 
+  class Config(ConfigBase):
+    pass  # No knobs yet; subclasses extend via inheritance.
+
   CHECK_POINT_EXT = ".pt"
 
   def __init__(self, name: str = "TalosModel", model_dir=None, **kwargs):
@@ -48,9 +51,7 @@ class TalosModel(Nomear):
 
   @Nomear.property()
   def config(self):
-    cfg = Config(name='model')
-    self._register_configs(cfg)
-    return cfg
+    return type(self).Config(name='model')
 
   @property
   def model_dir(self) -> str:
@@ -130,10 +131,6 @@ class TalosModel(Nomear):
 
   def forward(self, *args, **kwargs):
     raise NotImplementedError
-
-  def _register_configs(self, config: Config):
-    """Register base model knobs. Subclasses override and call super()."""
-    pass
 
   # endregion: Abstract Methods
 
