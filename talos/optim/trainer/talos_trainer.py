@@ -142,6 +142,10 @@ class TalosTrainer(Nomear):
 
       # (3) Compute loss.
       loss = loss_fn(outputs, Y)
+      # (3.1) Add model-specific loss (e.g., physics residual for PINNs).
+      model_loss = self.model.model_loss(X, outputs, Y)
+      if model_loss is not None:
+        loss = loss + model_loss
 
       # (4) Backward pass + parameter update (backend-specific).
       self._backward_and_update(loss)

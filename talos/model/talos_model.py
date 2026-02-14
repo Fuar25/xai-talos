@@ -132,6 +132,22 @@ class TalosModel(Nomear):
   def forward(self, *args, **kwargs):
     raise NotImplementedError
 
+  def model_loss(self, X, outputs, Y):
+    """Compute model-specific loss (e.g., PDE residual for PINNs).
+
+    Override in subclasses to inject custom loss terms. Called by the trainer
+    after the data loss; non-None return values are added to the total loss.
+
+    Args:
+      X: Input tensor (needed for autograd-based derivative computation).
+      outputs: Model forward pass outputs.
+      Y: Target tensor (may be None for self-supervised losses).
+
+    Returns:
+      Loss tensor, or None if no model-specific loss.
+    """
+    return None
+
   def _predict(self, X):
     """Backend-specific prediction. Override in subclasses."""
     return self.forward(X)

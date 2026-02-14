@@ -19,6 +19,7 @@ TalosModel (base)              <- save/load, config, model_dir management
 - `load(file_path=None, **kwargs)` — Load model state. If no path given, finds most recent checkpoint in `model_dir`.
 - `summary(input_size)` — Print model architecture summary.
 - `forward(*args, **kwargs)` — Forward pass (abstract, implemented by backends).
+- `model_loss(self, X, outputs, Y)` — Model-specific loss (e.g., PDE residual for PINNs). Returns loss tensor or None. Called by trainer after data loss; non-None values are added to total loss.
 - `predict(input)` — Inference API. Accepts numpy array, tensor, or `TalosData`. 1D input treated as single sample. Delegates to backend `_predict()`.
 - `config` — Lazy `Config` property via `@Nomear.property()`. Subclasses extend by defining an inner `Config` class (see `CONFIG_DESIGN.md` s6).
 - `model_dir` — Default: `{talos.work_dir}/models/{name}/`. Auto-creates directory.

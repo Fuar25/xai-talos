@@ -28,6 +28,10 @@ def train(self, train_set, max_iterations=None, batch_size=None,
     outputs = self.model.forward(X)
     # (3) Compute loss.
     loss = loss_fn(outputs, Y)                     # eval metric instance (callable)
+    # (3.1) Add model-specific loss (e.g., physics residual for PINNs).
+    model_loss = self.model.model_loss(X, outputs, Y)
+    if model_loss is not None:
+      loss = loss + model_loss
     # (4) Backward + update (backend-specific).
     self._backward_and_update(loss)                # zero_grad → backward → step
     # (5) Record training loss.
@@ -79,6 +83,7 @@ Track-based recording where each metric is an independent time series keyed by `
 - **Loss ownership**: Eval module defines metrics/losses; trainer consumes them
 - **Loss API**: Callable class instances via `get_torch_metric(spec)` (case-insensitive)
 - **Loss resolution**: `_get_loss_function` checks train-time arg (priority) → `self.loss_functions` OrderedDict (1st entry) → error if none
+- **Model loss**: After computing data loss, the trainer calls `model.model_loss(X, outputs, Y)`. Non-None results are added to the total loss. This enables model-specific losses (e.g., PDE residuals in PINNs) without coupling the trainer to specific model types
 - **Loss must be specified**: No default loss — user must provide `loss_fn` at init or train time
 - **Default optimizer**: `'sgd'`
 - **Default batch_size**: `-1` (full batch)
@@ -97,6 +102,11 @@ Track-based recording where each metric is an independent time series keyed by `
 - Restore best weights when early stopping triggers
 - Needs discussion: in-memory only, or save to disk?
 
-### 6.2. Progress Bar & Console Output
+### 6.2. Regularization
+- Add `regularizer` parameter to `TalosTrainer.__init__` for weight penalties (L1, L2, etc.).
+- API: `reg_loss = self.regularizer(self.model)` — depends only on model parameters, not on X/Y/outputs.
+- Combined in training loop: `total_loss = data_loss + model_loss + reg_loss`.
+
+### 6.3. Progress Bar & Console Output
 - **Done**: Basic console printing via `print_every` config knob. Prints iteration + train loss (`>> Iter N | train/metric = value`), validation metrics (`.. val/metric = value`), and `[Best]` notifications when early stopping metric improves. Start/end banners with early stopping message.
 - TODO: Progress bar with ETA (use `Console.print_progress`), verbosity levels
