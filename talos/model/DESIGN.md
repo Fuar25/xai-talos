@@ -19,12 +19,13 @@ TalosModel (base)              <- save/load, config, model_dir management
 - `load(file_path=None, **kwargs)` — Load model state. If no path given, finds most recent checkpoint in `model_dir`.
 - `summary(input_size)` — Print model architecture summary.
 - `forward(*args, **kwargs)` — Forward pass (abstract, implemented by backends).
+- `predict(input)` — Inference API. Accepts numpy array, tensor, or `TalosData`. 1D input treated as single sample. Delegates to backend `_predict()`.
 - `config` — Lazy `Config` property via `@Nomear.property()`. Subclasses extend by defining an inner `Config` class (see `CONFIG_DESIGN.md` s6).
 - `model_dir` — Default: `{talos.work_dir}/models/{name}/`. Auto-creates directory.
 
 ## 3. TorchModel
 
-Inherits both `torch.nn.Module` and `TalosModel`. Wraps an optional `_model` (any `nn.Module`) and delegates `forward()` to it. Saves/loads via `state_dict()`. Summary via `torchsummary` (optional dependency).
+Inherits both `torch.nn.Module` and `TalosModel`. Wraps an optional `_model` (any `nn.Module`) and delegates `forward()` to it. `_predict()` handles numpy→tensor conversion, runs in `eval()` + `no_grad()`, returns numpy. Saves/loads via `state_dict()`. Summary via `torchsummary` (optional dependency).
 
 ## 4. Zoo Access
 

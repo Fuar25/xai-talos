@@ -71,7 +71,7 @@ Track-based recording where each metric is an independent time series keyed by `
 | `_validate_optimizer` | abstract | Resolves str/class/instance → `torch.optim.Optimizer` |
 | `_backward_and_update` | abstract | `zero_grad()` → `backward()` → `step()` |
 | `_resolve_metric` | abstract | Delegates to `get_torch_metric(spec)` |
-| `_prepare_batch` | pass-through | numpy → `torch.tensor` on model device |
+| `_prepare_batch` | pass-through | numpy → `torch.tensor` on model device; 1D → single sample |
 | `_validate` | compute metrics + update patience | wraps with `model.eval()` + `no_grad()` |
 
 ## 5. Decided

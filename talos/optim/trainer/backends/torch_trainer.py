@@ -65,10 +65,10 @@ class TorchTrainer(TalosTrainer):
     """Convert numpy arrays to torch tensors on the model's device."""
     device = next(self.model.parameters()).device
     X = torch.tensor(X, dtype=torch.float32, device=device)
-    if X.ndim == 1: X = X.unsqueeze(-1)
+    if X.ndim == 1: X = X.unsqueeze(0)
     if Y is not None:
       Y = torch.tensor(Y, dtype=torch.float32, device=device)
-      if Y.ndim == 1: Y = Y.unsqueeze(-1)
+      if Y.ndim == 1: Y = Y.unsqueeze(0)
     return X, Y
 
   def _backward_and_update(self, loss) -> None:

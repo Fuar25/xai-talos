@@ -95,4 +95,20 @@ class TorchModel(_BASE_MODULE, TalosModel):
     model = self._model if self._model is not None else self
     return model(*args, **kwargs)
 
+  def _predict(self, X):
+    """Run inference with numpy/tensor input, returns numpy array."""
+    import numpy as np
+    device = next(self.parameters()).device
+    # (1) Convert numpy to tensor.
+    if isinstance(X, np.ndarray):
+      X = torch.tensor(X, dtype=torch.float32, device=device)
+    if X.ndim == 1: X = X.unsqueeze(0)
+    # (2) Eval mode + no_grad.
+    self.eval()
+    with torch.no_grad():
+      out = self.forward(X)
+    self.train()
+    # (3) Return as numpy.
+    return out.cpu().numpy()
+
   # endregion: Delegation

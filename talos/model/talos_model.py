@@ -132,9 +132,27 @@ class TalosModel(Nomear):
   def forward(self, *args, **kwargs):
     raise NotImplementedError
 
+  def _predict(self, X):
+    """Backend-specific prediction. Override in subclasses."""
+    return self.forward(X)
+
   # endregion: Abstract Methods
 
   # region: APIs
+
+  def predict(self, input):
+    """Run inference on numpy array, tensor, or TalosData.
+
+    Args:
+      input: numpy array, backend tensor, or TalosData instance.
+
+    Returns:
+      Prediction result (format depends on backend).
+    """
+    from talos.data.talos_data import TalosData
+    if isinstance(input, TalosData):
+      input = input.X
+    return self._predict(input)
 
   def summary(self, *args, **kwargs) -> None:
     """Print a summary of the model architecture."""
