@@ -65,8 +65,10 @@ class TorchTrainer(TalosTrainer):
     """Convert numpy arrays to torch tensors on the model's device."""
     device = next(self.model.parameters()).device
     X = torch.tensor(X, dtype=torch.float32, device=device)
+    if X.ndim == 1: X = X.unsqueeze(-1)
     if Y is not None:
       Y = torch.tensor(Y, dtype=torch.float32, device=device)
+      if Y.ndim == 1: Y = Y.unsqueeze(-1)
     return X, Y
 
   def _backward_and_update(self, loss) -> None:
@@ -105,8 +107,8 @@ if __name__ == "__main__":
 
   # Optimization
   trainer = TorchTrainer(model, loss_fn='mse')
-  trainer.config.print_every = 20
-  trainer.config.validate_every = 100
+  # trainer.config.print_every = 20
+  # trainer.config.validate_every = 100
   # trainer.config.val_ratio = 0.1
   # trainer.config.patience = 3
   trainer.train(train_set, max_iterations=500)
