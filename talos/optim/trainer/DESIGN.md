@@ -67,7 +67,8 @@ Track-based recording where each metric is an independent time series keyed by `
 - **Loss API**: Callable class instances via `get_torch_metric(spec)` (case-insensitive)
 - **Loss resolution**: `_get_loss_function` checks train-time arg (priority) → `self.loss_functions` OrderedDict (1st entry) → error if none
 - **Model loss**: After computing data loss, the trainer calls `model.model_loss(X, outputs, Y)`. Non-None results are added to the total loss. This enables model-specific losses (e.g., PDE residuals in PINNs) without coupling the trainer to specific model types
-- **Loss must be specified**: No default loss — user must provide `loss_fn` at init or train time
+- **`loss_fn=None`**: When no loss function is provided, training is driven entirely by `model_loss` (e.g., discrete time PINNs). No data loss is computed or recorded; `_print_progress` shows raw loss
+- **Loss must be specified (relaxed)**: User must provide `loss_fn` at init or train time, unless `model_loss` alone drives training
 - **Default optimizer**: `'sgd'`
 - **Default batch_size**: `-1` (full batch)
 - **Data → Tensor**: Backend-specific `_prepare_batch()` converts numpy → tensors on model's device

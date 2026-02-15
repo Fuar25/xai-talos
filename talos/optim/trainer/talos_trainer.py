@@ -132,7 +132,7 @@ class TalosTrainer(Nomear):
     val_metrics = self._resolve_val_metrics(val_metrics, loss_fn)
 
     # (0.5) Check for config warnings.
-    self._check_config_warnings(val_set)
+    self._check_config_warnings(val_set, val_metrics)
 
     # (0.6) Resolve print frequency.
     print_every = self.config.print_every
@@ -148,24 +148,25 @@ class TalosTrainer(Nomear):
       outputs = self.model.forward(X)
 
       # (3) Compute loss.
-      loss = loss_fn(outputs, Y)
+      loss = loss_fn(outputs, Y) if loss_fn is not None else 0
       # (3.1) Add model-specific loss (e.g., physics residual for PINNs).
       model_loss = self.model.model_loss(X, outputs, Y)
       if model_loss is not None:
-        loss = loss + model_loss
+        loss = loss + model_loss if loss != 0 else model_loss
 
       # (4) Backward pass + parameter update (backend-specific).
       self._backward_and_update(loss)
 
       # (5) Record training loss.
-      self.history.record(loss_fn, iteration=i, value=loss, group='train')
+      if loss_fn is not None:
+        self.history.record(loss_fn, iteration=i, value=loss, group='train')
 
       # (5.1) Print progress.
       if (i + 1) % print_every == 0:
-        self._print_progress(i, loss_fn)
+        self._print_progress(i, loss_fn, loss)
 
-      # (6) Validation.
-      if val_set is not None and (i + 1) % validate_every == 0:
+      # (6) Validation (skip if no val_metrics resolved).
+      if val_set is not None and val_metrics and (i + 1) % validate_every == 0:
         self._validate(val_set, val_metrics, i)
         # (6.1) Print validation results.
         self._print_validation(val_metrics, i)
@@ -239,19 +240,26 @@ class TalosTrainer(Nomear):
 
   # region: Utilities
 
-  def _check_config_warnings(self, val_set):
+  def _check_config_warnings(self, val_set, val_metrics):
     """Warn about config knobs that have no effect in the current setup."""
     if val_set is None:
       if self.config.early_stop:
         _console.warn('early_stop=True has no effect without a validation set')
       if self.config.save_best:
         _console.warn('save_best=True has no effect without a validation set')
+    if val_set is not None and not val_metrics:
+      _console.warn('Validation set provided but no val_metrics resolved — '
+                     'validation will be skipped')
 
-  def _print_progress(self, iteration, loss_fn):
+  def _print_progress(self, iteration, loss_fn, loss=None):
     """Print iteration + training loss."""
-    loss_key = f'train/{loss_fn.name}'
-    loss_val = self.history.latest(loss_key)
-    _console.show_status(f'Iter {iteration + 1} | {loss_key} = {loss_val:.6g}')
+    if loss_fn is not None:
+      loss_key = f'train/{loss_fn.name}'
+      loss_val = self.history.latest(loss_key)
+      _console.show_status(f'Iter {iteration + 1} | {loss_key} = {loss_val:.6g}')
+    elif loss is not None:
+      loss_val = loss.item() if hasattr(loss, 'item') else float(loss)
+      _console.show_status(f'Iter {iteration + 1} | loss = {loss_val:.6g}')
 
   def _print_validation(self, val_metrics, iteration):
     """Print validation metrics and notify on new best."""
@@ -307,11 +315,14 @@ class TalosTrainer(Nomear):
       import re
       names = [n.strip() for n in re.split(r'[,;]', config_str) if n.strip()]
       resolved = [self._resolve_metric(n) for n in names]
-    # (3) Default to loss function.
+    # (3) Default to loss function (skip if loss_fn is None).
     else:
+      if loss_fn is None:
+        return []
       resolved = [loss_fn]
     # (4) Set early stopping key (first val metric).
-    self._state.early_stop_metric = f'val/{resolved[0].name}'
+    if resolved:
+      self._state.early_stop_metric = f'val/{resolved[0].name}'
     return resolved
 
   def _resolve_param(self, name, arg_value, required=False):
@@ -346,8 +357,7 @@ class TalosTrainer(Nomear):
     # (2) First entry in loss_functions.
     if self.loss_functions:
       return next(iter(self.loss_functions.values()))
-    raise ValueError(
-      "No loss function specified. Provide loss_fn at init or train time.")
+    return None  # No data loss — model_loss drives training
 
   def _normalize_optimizer_spec(self) -> tuple[str | None, type | None, Any | None]:
     """Normalize `self.optimizer` into (name, cls, instance)."""
