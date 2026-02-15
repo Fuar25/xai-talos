@@ -22,6 +22,8 @@ class TrainState:
     # (1) Early stopping state.
     self.early_stop_metric = None
     self.patience_counter = 0
+    # (2) Checkpointing state.
+    self.best_checkpoint = None
 
 
 class TalosTrainer(Nomear):
@@ -49,6 +51,8 @@ class TalosTrainer(Nomear):
     print_every: int = ConfigBase.Integer(
       default=100, description='Print training progress every N iterations.',
       positive=True)
+    save_best: bool = ConfigBase.Boolean(
+      default=True, description='Save best model weights during validation.')
 
   def __init__(self, model: TalosModel, optimizer: Any = 'sgd',
                loss_fn=None, **optimizer_configs):
@@ -127,7 +131,10 @@ class TalosTrainer(Nomear):
     train_set, val_set = self._resolve_val_set(train_set, val_set)
     val_metrics = self._resolve_val_metrics(val_metrics, loss_fn)
 
-    # (0.5) Resolve print frequency.
+    # (0.5) Check for config warnings.
+    self._check_config_warnings(val_set)
+
+    # (0.6) Resolve print frequency.
     print_every = self.config.print_every
     _console.show_status(f'Training started (max_iterations={max_iterations})')
 
@@ -168,7 +175,15 @@ class TalosTrainer(Nomear):
         stopped_early = True
         break
 
-    # (8) Print training summary.
+    # (8) Restore best checkpoint if available.
+    if self.config.save_best and self._state.best_checkpoint is not None:
+      self._restore_checkpoint(self._state.best_checkpoint)
+      best_iter, best_val = self.history.best(self._state.early_stop_metric)
+      _console.show_status(
+        f'Restored best model (iter {best_iter + 1}, '
+        f'{self._state.early_stop_metric} = {best_val:.6g})')
+
+    # (9) Print training summary.
     if stopped_early:
       _console.show_status(
         f'Early stopping at iter {i + 1} (patience={self.config.patience})')
@@ -195,6 +210,14 @@ class TalosTrainer(Nomear):
     """Resolve metric spec into a metric instance (backend-specific)."""
     raise NotImplementedError
 
+  def _save_checkpoint(self):
+    """Save model state to memory. Returns checkpoint object."""
+    raise NotImplementedError
+
+  def _restore_checkpoint(self, checkpoint):
+    """Restore model state from checkpoint."""
+    raise NotImplementedError
+
   def _validate(self, val_set, val_metrics, iteration):
     """Run validation on val_set. Override in backends for gradient/mode handling."""
     # (1) Compute and record validation metrics.
@@ -203,15 +226,26 @@ class TalosTrainer(Nomear):
     for metric in val_metrics:
       val = metric(outputs, Y)
       self.history.record(metric, iteration=iteration, value=val, group='val')
-    # (2) Update early stopping state.
-    if self.history.improved(self._state.early_stop_metric):
+    # (2) Check improvement and update state.
+    improved = self.history.improved(self._state.early_stop_metric)
+    if improved:
       self._state.patience_counter = 0
+      if self.config.save_best:
+        self._state.best_checkpoint = self._save_checkpoint()
     else:
       self._state.patience_counter += 1
 
   # endregion: Backend-Specific Methods
 
   # region: Utilities
+
+  def _check_config_warnings(self, val_set):
+    """Warn about config knobs that have no effect in the current setup."""
+    if val_set is None:
+      if self.config.early_stop:
+        _console.warn('early_stop=True has no effect without a validation set')
+      if self.config.save_best:
+        _console.warn('save_best=True has no effect without a validation set')
 
   def _print_progress(self, iteration, loss_fn):
     """Print iteration + training loss."""

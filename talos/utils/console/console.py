@@ -200,7 +200,7 @@ class Console(object):
       text, color, highlight, attributes, self.SUPPLEMENT_PROMPT * level)
 
 
-  def warning(self, text, color='red', highlight=None, attributes=None):
+  def warn(self, text, color='red', highlight=None, attributes=None):
     """Show supplement using self.show_status"""
     return self.show_status(
       text, color, highlight, attributes, self.WARNING_PROMPT)

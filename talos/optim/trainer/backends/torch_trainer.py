@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from typing import Any
 
 import numpy as np
@@ -80,6 +81,14 @@ class TorchTrainer(TalosTrainer):
   def _resolve_metric(self, spec):
     """Resolve metric spec using torch metric registry."""
     return get_torch_metric(spec)
+
+  def _save_checkpoint(self):
+    """Deep copy model state dict to memory."""
+    return copy.deepcopy(self.model.state_dict())
+
+  def _restore_checkpoint(self, checkpoint):
+    """Load model state dict from checkpoint."""
+    self.model.load_state_dict(checkpoint)
 
   def _validate(self, val_set, val_metrics, iteration):
     """Run validation with model.eval() and torch.no_grad()."""

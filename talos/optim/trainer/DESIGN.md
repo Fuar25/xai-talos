@@ -14,33 +14,13 @@ trainer.train(train_set, max_iterations=100)        # default batch_size=-1 (ful
 
 ## 3. Training Loop
 
-```python
-def train(self, train_set, max_iterations=None, batch_size=None,
-          loss_fn=None, val_set=None, val_metrics=None):
-  # (0) Setup: resolve params, loss, state, validation.
-  self._state = TrainState()
-
-  for i in range(max_iterations):
-    # (1) Sample data and convert to backend format.
-    batch = train_set.sample(batch_size)           # batch_size=-1 → full dataset
-    X, Y = self._prepare_batch(batch.X, batch.Y)   # numpy → tensor (backend-specific)
-    # (2) Forward pass.
-    outputs = self.model.forward(X)
-    # (3) Compute loss.
-    loss = loss_fn(outputs, Y)                     # eval metric instance (callable)
-    # (3.1) Add model-specific loss (e.g., physics residual for PINNs).
-    model_loss = self.model.model_loss(X, outputs, Y)
-    if model_loss is not None:
-      loss = loss + model_loss
-    # (4) Backward + update (backend-specific).
-    self._backward_and_update(loss)                # zero_grad → backward → step
-    # (5) Record training loss.
-    self.history.record(loss_fn, iteration=i, value=loss, group='train')
-    # (6) Validation (every N iterations).
-    if val_set is not None and (i + 1) % validate_every == 0:
-      self._validate(val_set, val_metrics, i)
-    # (7) Check stopping criteria.
-    if self._should_stop(): break
+```
+Preparation
+for each iteration:
+  Get batch → predict → compute total loss → backpropagate and update
+  Periodically validate → track improvement, save best model
+  Stop early if required
+Restore best model if saved
 ```
 
 ## 4. Components
@@ -57,6 +37,7 @@ def train(self, train_set, max_iterations=None, batch_size=None,
 | `val_ratio` | float | None | Auto-split ratio for validation set (positive) |
 | `val_metrics` | str | None | Comma/semicolon-separated metric names for validation |
 | `print_every` | int | 100 | Print training progress every N iterations (positive) |
+| `save_best` | bool | True | Save best model weights during validation |
 
 ### 4.2. TrainingHistory
 
@@ -76,7 +57,9 @@ Track-based recording where each metric is an independent time series keyed by `
 | `_backward_and_update` | abstract | `zero_grad()` → `backward()` → `step()` |
 | `_resolve_metric` | abstract | Delegates to `get_torch_metric(spec)` |
 | `_prepare_batch` | pass-through | numpy → `torch.tensor` on model device; 1D → single sample |
-| `_validate` | compute metrics + update patience | wraps with `model.eval()` + `no_grad()` |
+| `_validate` | compute metrics + update patience + checkpoint | wraps with `model.eval()` + `no_grad()` |
+| `_save_checkpoint` | abstract | `copy.deepcopy(model.state_dict())` |
+| `_restore_checkpoint` | abstract | `model.load_state_dict(checkpoint)` |
 
 ## 5. Decided
 
@@ -94,13 +77,13 @@ Track-based recording where each metric is an independent time series keyed by `
 - **Validation metrics**: train() arg (priority) → `config.val_metrics` string → [loss_fn]
 - **Early stopping**: `TrainState` holds per-session state (`es_key`, `patience_counter`); `_validate` updates counter; `_should_stop` checks criteria
 - **`TrainState`**: Per-session state container created fresh each `train()` call; extensible for progress bar info
+- **Model checkpointing**: In-memory only. `save_best=True` by default; saves on validation improvement, restores after training loop. Only activates with a validation set present. Backend implements `_save_checkpoint()` / `_restore_checkpoint()`
 
 ## 6. TODO
 
 ### 6.1. Model Checkpointing
-- Save best model weights when validation improves
-- Restore best weights when early stopping triggers
-- Needs discussion: in-memory only, or save to disk?
+- ~~In-memory best-model checkpointing~~ — **Done**: `save_best` config knob, `_save_checkpoint()` / `_restore_checkpoint()` abstract methods
+- TODO: Disk-based checkpointing for long training runs
 
 ### 6.2. Regularization
 - Add `regularizer` parameter to `TalosTrainer.__init__` for weight penalties (L1, L2, etc.).
