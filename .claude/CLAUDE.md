@@ -4,13 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 1. Project Overview
 
-**xai-talos** is a decoupled, modular deep learning framework that isolates three core concerns:
-- Data (data manipulation and loading)
-- Evaluation (metrics)
-- Model (neural network architecture, algorithm workflow, and model deployment)
-- Optimization (gradient-based optimization and hyperparameter tuning)
+**xai-talos** is a decoupled, modular deep learning framework that isolates four core concerns:
+- Data (data wrapping, manipulation, generation, and distribution estimation)
+- Evaluation (metrics, model comparison, and ranking)
+- Model (architecture construction, algorithm workflow, and deployment)
+- Optimization (training workflows and hyperparameter tuning)
 
-Built for reproducibility and clean abstractions. Currently v0.1.0 (alpha), PyTorch-focused. Requires Python >=3.11.
+Currently v0.1.0 (alpha), PyTorch-focused. Requires Python >=3.11.
+
+### 1.1 Design Principle (Rule of Thumb)
+
+Talos maps directly to the mental model of data-driven modeling — its API mirrors how practitioners think, not how code is organized. This requires two non-negotiable properties:
+
+1. **Theoretically simplest APIs** — minimal and intuitive; if a simpler correct API exists, adopt it
+2. **Full extensibility** — no ceiling on what advanced users can achieve
+
+These are reconciled through **accurate abstractions** — the precise decomposition that makes simplicity and extensibility non-competing.
 
 ## 2. Design File Convention
 
@@ -50,8 +59,12 @@ Each package and module can have an associated `*DESIGN.md` file:
 - **df** — design file (e.g., "the df of talos/optim" → `talos/optim/DESIGN.md`)
 - **ccmd** — `.claude/CLAUDE.md`
 - **s`<N>`** — section or subsection in a `.md` file (e.g., s4.1 → section 4.1). Combine with file abbreviations: `ccmd/s4` → section 4 of CLAUDE.md.
+- **ta** — `talos` (the framework itself)
 - **tt** — `tutorials/`
 - **pint** — `tutorials/PINNs`
+- **rot** — rule of thumb (design principle, see s1.1)
+
+Abbreviations are for conversational use only. Do not use them in design files, code, commit messages, or any content outside this section.
 
 ## 5. Commands
 
