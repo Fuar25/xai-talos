@@ -1,6 +1,6 @@
 # Customized .gitignore
 .*
-.claude
+#.claude
 .idea
 .vscode
 *_local
