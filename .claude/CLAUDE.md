@@ -50,6 +50,8 @@ Each package and module can have an associated `*DESIGN.md` file:
 - **df** — design file (e.g., "the df of talos/optim" → `talos/optim/DESIGN.md`)
 - **ccmd** — `.claude/CLAUDE.md`
 - **s`<N>`** — section or subsection in a `.md` file (e.g., s4.1 → section 4.1). Combine with file abbreviations: `ccmd/s4` → section 4 of CLAUDE.md.
+- **tt** — `tutorials/`
+- **pint** — `tutorials/PINNs`
 
 ## 5. Commands
 
